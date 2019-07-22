@@ -5,8 +5,6 @@ import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -17,58 +15,58 @@ import static java.util.stream.Collectors.toSet;
 public final class PageOperator {
   private static final Logger logger = LogManager.getLogger(PageOperator.class);
 
-  private Document page;
-  private final String pageAddress;
+  private final String domain;
   private final PageObtainService pageObtainService;
-  private String domain = "";
-  private Set<String> linksWithinDomain;
-  private Set<String> externalLinks;
-  private Set<String> staticLinks;
 
-  public PageOperator(String pageAddress, PageObtainService pageObtainService) {
-    this.pageAddress = pageAddress;
+  public PageOperator(PageObtainService pageObtainService, String domain) {
     this.pageObtainService = pageObtainService;
-    this.saveDomainName(pageAddress);
+    this.domain = domain;
   }
 
-  public PageOperator processPageAngGetResults() {
-    this.fetchAndParsePage();
-    Set<Link> allLinks = this.extractLinks();
-    this.linksWithinDomain =
-        applyFiltersAndCollectUrls(allLinks, link -> link.linkType == LinkType.DOMAIN);
-    this.externalLinks =
-        applyFiltersAndCollectUrls(allLinks, link -> link.linkType == LinkType.EXTERNAL);
-    this.staticLinks =
-        applyFiltersAndCollectUrls(allLinks, link -> link.linkType == LinkType.STATIC);
-    return this;
+  ScrappedPage processPageAngGetResults(String pageUrl) {
+    pageUrl = sanitizeUrl(pageUrl);
+    logger.debug("Processing " + pageUrl);
+    Document fetchedDocument = fetchPage(pageUrl);
+
+    ScrappedPage scrappedPage = new ScrappedPage();
+    scrappedPage.setPageAddress(pageUrl);
+    Set<Link> allLinks = this.extractLinks(fetchedDocument);
+    scrappedPage.setLinksWithinDomain(
+        applyFiltersAndCollectUrls(allLinks, link -> link.linkType == LinkType.DOMAIN));
+    scrappedPage.setExternalLinks(
+        applyFiltersAndCollectUrls(allLinks, link -> link.linkType == LinkType.EXTERNAL));
+    scrappedPage.setStaticLinks(
+        applyFiltersAndCollectUrls(allLinks, link -> link.linkType == LinkType.STATIC));
+    return scrappedPage;
   }
 
-  Set<String> applyFiltersAndCollectUrls(Set<Link> allLinks, Predicate<Link> linkTypePredicate) {
+  private String sanitizeUrl(String pageUrl) {
+    if (pageUrl.contains("#")) {
+      pageUrl = pageUrl.split("#")[0];
+    }
+    if (pageUrl.contains("?")) {
+      pageUrl = pageUrl.split("\\?")[0];
+    }
+    return pageUrl;
+  }
+
+  private Set<String> applyFiltersAndCollectUrls(
+      Set<Link> allLinks, Predicate<Link> linkTypePredicate) {
     return allLinks.stream().filter(linkTypePredicate).map(link -> link.url).collect(toSet());
   }
 
-  Set<Link> extractLinks() {
-    return Stream.concat(streamElementsOfTag("a"), streamElementsOfTag("url"))
+  private Set<Link> extractLinks(Document document) {
+    return Stream.concat(streamElementsOfTag(document, "a"), streamElementsOfTag(document, "link"))
         .map(Link::new)
         .collect(toSet());
   }
 
-  Stream<Element> streamElementsOfTag(String tag) {
-    return this.page.select(tag).stream();
+  private Stream<Element> streamElementsOfTag(Document document, String tag) {
+    return document == null ? Stream.of() : document.select(tag).stream();
   }
 
-  private void fetchAndParsePage() {
-    this.page = pageObtainService.getPageFromUrl(pageAddress);
-  }
-
-  private void saveDomainName(String url) {
-    try {
-      URI uri = new URI(url);
-      String domain = uri.getHost();
-      this.domain = domain.startsWith("www.") ? domain.substring(4) : domain;
-    } catch (URISyntaxException e) {
-      logger.error("Exception while resolving a domain", e);
-    }
+  private Document fetchPage(String pageUrl) {
+    return pageObtainService.getPageFromUrl(pageUrl);
   }
 
   private class Link {
@@ -79,20 +77,24 @@ public final class PageOperator {
     Link(Element element) {
       this.url = element.attr("abs:href");
       this.type = element.attr("rel");
-      this.linkType = determineType();
+      this.linkType = determineLinkType(domain);
     }
 
-    private LinkType determineType() {
-      if (type.isEmpty() && url.contains(domain)) {
+    private LinkType determineLinkType(String domain) {
+      if (type.isEmpty() && isWithinDomain(url, domain)) {
         return LinkType.DOMAIN;
       }
-      if (!type.isEmpty() && url.contains(domain)) {
+      if (!type.isEmpty() && isWithinDomain(url, domain)) {
         return LinkType.STATIC;
       }
-      if (!url.contains(domain)) {
+      if (!isWithinDomain(url, domain)) {
         return LinkType.EXTERNAL;
       }
       return LinkType.UNKNOWN;
+    }
+
+    private boolean isWithinDomain(String url, String domain) {
+      return url.startsWith("https://" + domain) || url.startsWith("http://" + domain);
     }
 
     @Override
