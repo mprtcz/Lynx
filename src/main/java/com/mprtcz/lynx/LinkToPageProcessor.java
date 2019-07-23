@@ -1,6 +1,7 @@
 package com.mprtcz.lynx;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /** @author Michal_Partacz */
 public class LinkToPageProcessor {
@@ -14,9 +15,10 @@ public class LinkToPageProcessor {
 
   ScrappedPage processPageDomainLinks(ScrappedPage scrappedPage) {
     var domainLinks = scrappedPage.getLinksWithinDomain();
-    domainLinks
-        .parallelStream()
+    domainLinks.stream()
         .filter((s) -> !processedLinks.containsKey(s))
+        .collect(Collectors.toSet())
+        .parallelStream()
         .forEach(
             s -> {
               var result = pageOperator.processPageAngGetResults(s);

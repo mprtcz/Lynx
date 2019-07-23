@@ -6,9 +6,7 @@ import org.apache.logging.log4j.Logger;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-/**
- * @author Michal_Partacz
- */
+/** @author Michal_Partacz */
 public class App {
   private static final Logger logger = LogManager.getLogger(App.class);
   private static final String ROOT_URL = "https://zaufanatrzeciastrona.pl/";
@@ -16,13 +14,14 @@ public class App {
   public static void main(String[] args) {
     logger.trace("App started");
 
-    assert(args.length > 0);
+    assert (args.length > 0);
     String pageName = args[0];
 
-    PageOperator pageOperator = new PageOperator(new PageObtainService(),
-        resolveDomainName(ROOT_URL));
+    PageOperator pageOperator =
+        new PageOperator(new PageObtainService(), new JsoupService(), resolveDomainName(ROOT_URL));
 
-    UrlProcessor urlProcessor = new UrlProcessor(pageOperator , new LinkToPageProcessor(pageOperator));
+    UrlProcessor urlProcessor =
+        new UrlProcessor(pageOperator, new LinkToPageProcessor(pageOperator));
     urlProcessor.processTheUrl(ROOT_URL);
     urlProcessor.getRootPage().printPretty("-", false);
   }

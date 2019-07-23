@@ -3,11 +3,9 @@ package com.mprtcz.lynx;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
 
@@ -17,9 +15,12 @@ public final class PageOperator {
 
   private final String domain;
   private final PageObtainService pageObtainService;
+  private final JsoupService jsoupService;
 
-  public PageOperator(PageObtainService pageObtainService, String domain) {
+  public PageOperator(PageObtainService pageObtainService,
+      JsoupService jsoupService, String domain) {
     this.pageObtainService = pageObtainService;
+    this.jsoupService = jsoupService;
     this.domain = domain;
   }
 
@@ -30,13 +31,15 @@ public final class PageOperator {
 
     ScrappedPage scrappedPage = new ScrappedPage();
     scrappedPage.setPageAddress(pageUrl);
-    Set<Link> allLinks = this.extractLinks(fetchedDocument);
+    Set<Link> allLinks =
+        this.jsoupService.extractLinks(fetchedDocument, this.domain);
     scrappedPage.setLinksWithinDomain(
-        applyFiltersAndCollectUrls(allLinks, link -> link.linkType == LinkType.DOMAIN));
+        applyFiltersAndCollectUrls(allLinks, link -> link.isOfType(Link.LinkType.DOMAIN)));
     scrappedPage.setExternalLinks(
-        applyFiltersAndCollectUrls(allLinks, link -> link.linkType == LinkType.EXTERNAL));
+        applyFiltersAndCollectUrls(
+            allLinks, link -> link.isOfType(Link.LinkType.EXTERNAL)));
     scrappedPage.setStaticLinks(
-        applyFiltersAndCollectUrls(allLinks, link -> link.linkType == LinkType.STATIC));
+        applyFiltersAndCollectUrls(allLinks, link -> link.isOfType(Link.LinkType.STATIC)));
     return scrappedPage;
   }
 
@@ -52,61 +55,10 @@ public final class PageOperator {
 
   private Set<String> applyFiltersAndCollectUrls(
       Set<Link> allLinks, Predicate<Link> linkTypePredicate) {
-    return allLinks.stream().filter(linkTypePredicate).map(link -> link.url).collect(toSet());
-  }
-
-  private Set<Link> extractLinks(Document document) {
-    return Stream.concat(streamElementsOfTag(document, "a"), streamElementsOfTag(document, "link"))
-        .map(Link::new)
-        .collect(toSet());
-  }
-
-  private Stream<Element> streamElementsOfTag(Document document, String tag) {
-    return document == null ? Stream.of() : document.select(tag).stream();
+    return allLinks.stream().filter(linkTypePredicate).map(link -> link.getUrl()).collect(toSet());
   }
 
   private Document fetchPage(String pageUrl) {
     return pageObtainService.getPageFromUrl(pageUrl);
-  }
-
-  private class Link {
-    String url;
-    String type;
-    LinkType linkType;
-
-    Link(Element element) {
-      this.url = element.attr("abs:href");
-      this.type = element.attr("rel");
-      this.linkType = determineLinkType(domain);
-    }
-
-    private LinkType determineLinkType(String domain) {
-      if (type.isEmpty() && isWithinDomain(url, domain)) {
-        return LinkType.DOMAIN;
-      }
-      if (!type.isEmpty() && isWithinDomain(url, domain)) {
-        return LinkType.STATIC;
-      }
-      if (!isWithinDomain(url, domain)) {
-        return LinkType.EXTERNAL;
-      }
-      return LinkType.UNKNOWN;
-    }
-
-    private boolean isWithinDomain(String url, String domain) {
-      return url.startsWith("https://" + domain) || url.startsWith("http://" + domain);
-    }
-
-    @Override
-    public String toString() {
-      return "Link{" + "url='" + url + '\'' + ", type='" + type + '\'' + '}';
-    }
-  }
-
-  private enum LinkType {
-    UNKNOWN,
-    DOMAIN,
-    EXTERNAL,
-    STATIC
   }
 }
