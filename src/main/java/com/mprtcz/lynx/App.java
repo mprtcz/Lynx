@@ -26,6 +26,7 @@ public class App {
     if (url == null) {
       throw new IllegalArgumentException("Url cannot be null");
     }
+    url = decorateUrl(url);
 
     PageOperator pageOperator =
         new PageOperator(new PageObtainService(), new JsoupService(), resolveDomainName(url));
@@ -49,6 +50,12 @@ public class App {
       logger.error("Exception while resolving a domain", e);
     }
     return "";
+  }
+
+  private static String decorateUrl(String url) {
+    if (!url.toLowerCase().startsWith("http://") || !url.toLowerCase().startsWith("https://")) {
+      return "http://" + url;
+    }
   }
 
   private static Map<String, String> parseArgs(String[] args) {
