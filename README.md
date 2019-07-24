@@ -35,6 +35,22 @@ Indentations signify that links are children of the less indented link.
 
 Static links are prefixed with `>` and external links are prefixed with `+`
 
+## Overview of the solution
+
+The app is taking and initial link and converts the string to a Document with Jsoup library. 
+Links with special character like `?`, `#` and `&` are shortened as those characters typically represent URL arguments and most of the time do not chage the content of the page itself.
+The document itself if wrapped in an object containing links categorized according to the task's requirements:
+* static links
+* in-domain links
+* external links
+
+Static and in-domain links are not followed by the application, they are listed in the result though.
+
+Links that are in the same domain are the recursively followed and for each link an instance of the wrapper is added to the parent.
+While transversing the tree, the app remembers which links have been visited and does not follow them in order to prevent endless recursion.
+Additional safeguard is implemented in the service which obtains a document from the url. It caches the already obtained documents and 
+returns the whenever there is another call for the same URL. 
+
 ## Tradeoffs and potential improvements:
  * First of all, the app has an extremely low test coverage and the author is very well aware of this fact.
  A few example tests are provided which can indicate how further tests would be written.
