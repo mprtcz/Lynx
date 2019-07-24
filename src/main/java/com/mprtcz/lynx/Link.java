@@ -1,26 +1,32 @@
 package com.mprtcz.lynx;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 import org.jsoup.nodes.Element;
 
 /** @author Michal_Partacz */
 @Getter
+@ToString
+@EqualsAndHashCode
 public class Link {
-  private String url;
-  private String type;
-  private LinkType linkType;
+  String url;
+  String rel;
+  LinkType linkType;
 
-  Link(Element element, String domain) {
-    this.url = element.attr("abs:href");
-    this.type = element.attr("rel");
-    this.linkType = determineLinkType(domain);
+  static Link getInstance(Element element, String domain) {
+    Link link = new Link();
+    link.url = element.attr("abs:href");
+    link.rel = element.attr("rel");
+    link.linkType = link.determineLinkType(domain);
+    return link;
   }
 
   private LinkType determineLinkType(String domain) {
-    if (type.isEmpty() && isWithinDomain(url, domain)) {
+    if (rel.isEmpty() && isWithinDomain(url, domain)) {
       return LinkType.DOMAIN;
     }
-    if (!type.isEmpty() && isWithinDomain(url, domain)) {
+    if (!rel.isEmpty() && isWithinDomain(url, domain)) {
       return LinkType.STATIC;
     }
     if (!isWithinDomain(url, domain)) {
@@ -30,16 +36,13 @@ public class Link {
   }
 
   private boolean isWithinDomain(String url, String domain) {
-    return url.startsWith("https://" + domain) || url.startsWith("http://" + domain);
+    return url.startsWith(domain)
+        || url.startsWith("https://" + domain)
+        || url.startsWith("http://" + domain);
   }
 
   boolean isOfType(LinkType linkType) {
     return this.linkType == linkType;
-  }
-
-  @Override
-  public String toString() {
-    return "Link{" + "url='" + url + '\'' + ", type='" + type + '\'' + '}';
   }
 
   enum LinkType {

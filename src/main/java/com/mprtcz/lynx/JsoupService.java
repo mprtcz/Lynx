@@ -13,7 +13,7 @@ public class JsoupService {
 
   Set<Link> extractLinks(Document document, String domain) {
     return Stream.concat(streamElementsOfTag(document, "a"), streamElementsOfTag(document, "link"))
-        .map(element -> new Link(element, domain))
+        .map(element -> Link.getInstance(element, domain))
         .collect(toSet());
   }
 

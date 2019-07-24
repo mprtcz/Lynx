@@ -2,6 +2,7 @@ package com.mprtcz.lynx;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Document;
@@ -14,6 +15,7 @@ import java.util.Set;
 /** @author Michal_Partacz */
 @Getter
 @Setter
+@ToString
 public class ScrappedPage {
   private static final Logger logger = LogManager.getLogger(ScrappedPage.class);
 

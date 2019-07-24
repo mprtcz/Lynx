@@ -27,7 +27,7 @@ public final class PageOperator {
   ScrappedPage processPageAngGetResults(String pageUrl) {
     pageUrl = sanitizeUrl(pageUrl);
     logger.debug("Processing " + pageUrl);
-    Document fetchedDocument = fetchPage(pageUrl);
+    Document fetchedDocument = pageObtainService.getPageFromUrl(pageUrl);
 
     ScrappedPage scrappedPage = new ScrappedPage();
     scrappedPage.setPageAddress(pageUrl);
@@ -55,10 +55,7 @@ public final class PageOperator {
 
   private Set<String> applyFiltersAndCollectUrls(
       Set<Link> allLinks, Predicate<Link> linkTypePredicate) {
-    return allLinks.stream().filter(linkTypePredicate).map(link -> link.getUrl()).collect(toSet());
+    return allLinks.stream().filter(linkTypePredicate).map(Link::getUrl).collect(toSet());
   }
 
-  private Document fetchPage(String pageUrl) {
-    return pageObtainService.getPageFromUrl(pageUrl);
-  }
 }
