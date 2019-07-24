@@ -1,7 +1,6 @@
 package com.mprtcz.lynx;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /** @author Michal_Partacz */
 public class LinkToPageProcessor {
@@ -13,18 +12,21 @@ public class LinkToPageProcessor {
     this.pageOperator = pageOperator;
   }
 
+  ScrappedPage processUrl(String url) {
+    var result = pageOperator.processPageAngGetResults(url);
+    processedLinks.put(url, DUMMY);
+    return processPageDomainLinks(result);
+  }
+
   ScrappedPage processPageDomainLinks(ScrappedPage scrappedPage) {
-    var domainLinks = scrappedPage.getLinksWithinDomain();
-    domainLinks.stream()
-        .filter((s) -> !processedLinks.containsKey(s))
-        .collect(Collectors.toSet())
-        .parallelStream()
-        .forEach(
-            s -> {
-              var result = pageOperator.processPageAngGetResults(s);
-              processedLinks.put(s, DUMMY);
-              scrappedPage.getPagesLinkedFromThis().add(processPageDomainLinks(result));
-            });
+    scrappedPage.getLinksWithinDomain().parallelStream()
+            .filter((s) -> !processedLinks.containsKey(s))
+            .forEach(
+                s -> {
+                  var result = pageOperator.processPageAngGetResults(s);
+                  processedLinks.put(s, DUMMY);
+                  scrappedPage.getPagesLinkedFromThis().add(processPageDomainLinks(result));
+                });
     return scrappedPage;
   }
 }

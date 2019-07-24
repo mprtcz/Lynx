@@ -14,10 +14,25 @@ public class JsoupService {
   Set<Link> extractLinks(Document document, String domain) {
     return Stream.concat(streamElementsOfTag(document, "a"), streamElementsOfTag(document, "link"))
         .map(element -> Link.getInstance(element, domain))
+        .filter(
+            link -> link.url.equals(sanitizeUrl(link.url)))
         .collect(toSet());
   }
 
   private Stream<Element> streamElementsOfTag(Document document, String tag) {
     return document == null ? Stream.of() : document.select(tag).stream();
+  }
+
+  static String sanitizeUrl(String pageUrl) {
+    if (pageUrl.contains("?")) {
+      pageUrl = pageUrl.split("\\?")[0];
+    }
+    if (pageUrl.contains("#")) {
+      pageUrl = pageUrl.split("#")[0];
+    }
+    if (pageUrl.contains("&")) {
+      pageUrl = pageUrl.split("&")[0];
+    }
+    return pageUrl;
   }
 }

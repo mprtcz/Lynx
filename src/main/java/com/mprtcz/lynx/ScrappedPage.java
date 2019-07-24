@@ -26,26 +26,32 @@ public class ScrappedPage {
   private Set<String> externalLinks = new HashSet<>();
   private Set<String> staticLinks = new HashSet<>();
 
-  void printPretty(String indent, boolean isLast) {
-    System.out.print(indent);
+  String constructResultString(StringBuilder result, String indent, boolean isLast) {
+    result.append(indent);
     if (isLast) {
-      System.out.print("\\-");
+      result.append("\\-");
       indent += "  ";
     } else {
-      System.out.print("|-");
+      result.append("|-");
       indent += "| ";
     }
-    System.out.println(pageAddress);
+    result.append(pageAddress).append("\n");
     if (!staticLinks.isEmpty()) {
       String finalIndent = indent;
-      staticLinks.forEach((link) -> System.out.println(finalIndent + "| > " + link));
+      staticLinks.forEach(
+          (link) -> result.append(finalIndent).append("| > ").append(link).append("\n"));
     }
     if (!externalLinks.isEmpty()) {
       String finalIndent = indent;
-      externalLinks.forEach((link) -> System.out.println(finalIndent + "| + " + link));
+      externalLinks.forEach(
+          (link) -> result.append(finalIndent).append("| + ").append(link).append("\n"));
     }
 
     for (int i = 0; i < pagesLinkedFromThis.size(); i++)
-      pagesLinkedFromThis.get(i).printPretty(indent, i == pagesLinkedFromThis.size() - 1);
+      pagesLinkedFromThis
+          .get(i)
+          .constructResultString(result, indent, i == pagesLinkedFromThis.size() - 1);
+
+    return result.toString();
   }
 }

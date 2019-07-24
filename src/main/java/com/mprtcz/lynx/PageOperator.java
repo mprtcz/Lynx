@@ -7,6 +7,7 @@ import org.jsoup.nodes.Document;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static com.mprtcz.lynx.JsoupService.sanitizeUrl;
 import static java.util.stream.Collectors.toSet;
 
 /** @author Michal_Partacz */
@@ -41,16 +42,6 @@ public final class PageOperator {
     scrappedPage.setStaticLinks(
         applyFiltersAndCollectUrls(allLinks, link -> link.isOfType(Link.LinkType.STATIC)));
     return scrappedPage;
-  }
-
-  private String sanitizeUrl(String pageUrl) {
-    if (pageUrl.contains("#")) {
-      pageUrl = pageUrl.split("#")[0];
-    }
-    if (pageUrl.contains("?")) {
-      pageUrl = pageUrl.split("\\?")[0];
-    }
-    return pageUrl;
   }
 
   private Set<String> applyFiltersAndCollectUrls(
